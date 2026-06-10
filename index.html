@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== LOGIN ===== */
+#login-screen{
+  position:fixed;inset:0;background:#0d0d0f;
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+}
+.login-box{
+  background:#16161a;border:1px solid #2a2a35;border-radius:16px;
+  padding:2.5rem 2rem;width:100%;max-width:400px;
+  display:flex;flex-direction:column;align-items:center;gap:1.2rem;
+}
+.login-logo{
+  width:64px;height:64px;background:rgba(249,115,22,0.15);
+  border:1px solid #f97316;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;
+}
+.login-title{font-size:22px;font-weight:700;color:#f0f0f5;letter-spacing:-0.02em;}
+.login-sub{font-size:13px;color:#8888a0;margin-top:-0.5rem;}
+.login-field{width:100%;display:flex;flex-direction:column;gap:6px;}
+.login-field label{font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.06em;}
+.login-field input{
+  width:100%;padding:11px 14px;
+  background:#1e1e24;border:1px solid #2a2a35;border-radius:8px;
+  color:#f0f0f5;font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;
+  transition:border-color 0.2s;
+}
+.login-field input:focus{border-color:#f97316;}
+.login-btn{
+  width:100%;padding:12px;background:#f97316;border:none;border-radius:8px;
+  color:#000;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:opacity 0.2s;margin-top:0.25rem;
+}
+.login-btn:hover{opacity:0.9;}
+.login-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.login-error{
+  width:100%;padding:10px 14px;background:rgba(239,68,68,0.1);
+  border:1px solid rgba(239,68,68,0.3);border-radius:8px;
+  color:#ef4444;font-size:13px;text-align:center;display:none;
+}
+.login-loading{color:#8888a0;font-size:13px;display:none;}
+.login-forgot{
+  font-size:12px;color:#8888a0;background:none;border:none;
+  cursor:pointer;text-decoration:underline;
+}
+.login-forgot:hover{color:#f97316;}
+#app-screen{display:none;}
+/* Enquanto Firebase carrega, esconde tudo */
+body.loading #login-screen, body.loading #app-screen{display:none!important;}
+</style>
+:root{
+  --bg:#0d0d0f;--surface:#16161a;--surface2:#1e1e24;--surface3:#26262e;
+  --border:#2a2a35;--border-light:#35353f;
+  --orange:#f97316;--orange-bg:rgba(249,115,22,0.08);--orange-bg2:rgba(249,115,22,0.15);
+  --green:#22c55e;--green-bg:rgba(34,197,94,0.08);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.08);
+  --yellow:#eab308;--yellow-bg:rgba(234,179,8,0.08);
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,0.08);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.08);
+  --text:#f0f0f5;--text-muted:#8888a0;--text-hint:#55556a;
+  --radius:12px;--radius-sm:8px;--radius-xs:5px;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:var(--orange-bg2);border:1px solid var(--orange);border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.logo-text{font-size:15px;font-weight:600;letter-spacing:-0.02em;}
+.logo-sub{font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+.currency-sel{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+.currency-sel button{padding:6px 16px;font-family:var(--mono);font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);cursor:pointer;transition:all 0.2s;}
+.currency-sel button.active{background:var(--orange);color:#000;}
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 2rem;}
+.tab-bar button{padding:14px 20px;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;margin-bottom:-1px;}
+.tab-bar button:hover{color:var(--text);}
+.tab-bar button.active{color:var(--orange);border-bottom-color:var(--orange);}
+.main-wrap{padding:1.5rem 2rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start;}
+.tab-content{display:none;}.tab-content.active{display:block;}
+.block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.25rem;}
+.block-header{display:flex;align-items:center;gap:12px;padding:1rem 1.25rem;border-bottom:1px solid var(--border);}
+.block-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bi-orange{background:var(--orange-bg2);border:1px solid rgba(249,115,22,0.3);}
+.bi-blue{background:var(--blue-bg);border:1px solid rgba(59,130,246,0.3);}
+.bi-green{background:var(--green-bg);border:1px solid rgba(34,197,94,0.3);}
+.bi-purple{background:var(--purple-bg);border:1px solid rgba(168,85,247,0.3);}
+.bi-yellow{background:var(--yellow-bg);border:1px solid rgba(234,179,8,0.3);}
+.block-title{font-size:14px;font-weight:600;}
+.block-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.block-body{padding:1.25rem;}
+label{display:block;font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.input-wrap{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;transition:border-color 0.2s;}
+.input-wrap:focus-within{border-color:var(--orange);}
+.input-wrap input{flex:1;padding:9px 12px;font-family:var(--mono);font-size:13px;background:none;border:none;color:var(--text);outline:none;min-width:0;}
+.input-wrap input::placeholder{color:var(--text-hint);}
+.input-px{padding:0 10px;font-family:var(--mono);font-size:11px;color:var(--text-hint);border-left:1px solid var(--border);height:100%;display:flex;align-items:center;white-space:nowrap;}
+.px-left{border-left:none!important;border-right:1px solid var(--border)!important;}
+.fg{margin-bottom:0.875rem;}
+.fg:last-child{margin-bottom:0;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.item-row{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.875rem;margin-bottom:0.625rem;}
+.item-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;}
+.item-label{font-size:11px;font-family:var(--mono);color:var(--orange);font-weight:500;}
+.rm-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;padding:2px 5px;border-radius:4px;transition:all 0.15s;}
+.rm-btn:hover{color:var(--red);background:var(--red-bg);}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;font-family:var(--sans);font-size:12px;font-weight:500;color:var(--orange);background:var(--orange-bg);border:1px dashed rgba(249,115,22,0.4);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;width:100%;margin-top:0.75rem;}
+.add-btn:hover{background:var(--orange-bg2);border-color:var(--orange);}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.result-row:last-child{border-bottom:none;}
+.rl{color:var(--text-muted);}
+.rv{font-family:var(--mono);font-weight:600;font-size:13px;}
+.rv-orange{color:var(--orange);}
+.rv-green{color:var(--green);}
+.rv-red{color:var(--red);}
+.rv-blue{color:var(--blue);}
+.rv-purple{color:var(--purple);}
+.rv-yellow{color:var(--yellow);}
+.sum-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;margin-top:0.875rem;}
+.sum-title{font-size:10px;font-family:var(--mono);color:var(--text-hint);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;}
+.sum-val{font-family:var(--mono);font-size:22px;font-weight:700;}
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0.875rem;}
+.mini-card{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;}
+.mini-label{font-size:10px;color:var(--text-hint);margin-bottom:3px;}
+.mini-val{font-family:var(--mono);font-size:14px;font-weight:700;}
+.margin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.margin-btn{padding:12px 8px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--orange);background:var(--surface2);border:1px solid rgba(249,115,22,0.3);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;text-align:center;}
+.margin-btn:hover{background:var(--orange-bg);border-color:var(--orange);}
+.margin-btn.active{background:var(--orange);color:#000;}
+.indicator{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono);}
+.ind-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.ind-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,0.3);}
+.ind-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.divider{border:none;border-top:1px solid var(--border);margin:1rem 0;}
+.placeholder{padding:2rem;text-align:center;color:var(--text-hint);font-size:13px;line-height:1.6;}
+.hidden{display:none!important;}
+.edit-link{background:none;border:none;cursor:pointer;color:var(--orange);font-size:12px;font-family:var(--sans);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:3px;}
+.hdr-tab{padding:7px 20px;font-family:var(--sans);font-size:13px;font-weight:500;border:none;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;background:none;color:var(--text-muted);-webkit-tap-highlight-color:transparent;}
+.hdr-tab-active{background:var(--orange)!important;color:#000!important;}
+.reset-btn{padding:6px 16px;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
+.reset-btn:hover{border-color:var(--red);color:var(--red);}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:0.3;}
+
+/* ===== RESPONSIVO MOBILE ===== */
+@media (max-width: 768px){
+  /* Header */
+  header{
+    padding:0 1rem;
+    height:auto;
+    flex-wrap:wrap;
+    gap:10px;
+    padding-top:10px;
+    padding-bottom:10px;
+  }
+  .logo-sub{display:none;}
+
+  /* Abas do header — pill menor */
+  header > div:nth-child(2) button{
+    padding:6px 12px !important;
+    font-size:12px !important;
+  }
+
+  /* Reset e moeda */
+  header > div:last-child{gap:10px;}
+  .currency-sel button{padding:6px 10px;font-size:11px;}
+
+  /* Layout principal */
+  .main-wrap{padding:1rem;}
+  .two-col{grid-template-columns:1fr;}
+
+  /* Campos em grid viram coluna única no mobile */
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr 1fr;}
+
+  /* Resumo Diario — 4 colunas viram 2x2 */
+  .item-row > div[style*="display:flex;align-items:flex-end"]{
+    flex-wrap:wrap;
+  }
+  .item-row > div[style*="display:flex;align-items:flex-end"] > .fg{
+    flex:1 1 calc(50% - 8px) !important;
+    min-width:120px;
+  }
+  .item-row > div[style*="display:flex;align-items:flex-end"] > button{
+    align-self:flex-end;
+    margin-bottom:0 !important;
+  }
+
+  /* Inputs maiores para toque */
+  .input-wrap input{
+    padding:11px 12px;
+    font-size:14px;
+  }
+  .add-btn{padding:12px 14px;font-size:13px;}
+  .rm-btn{font-size:22px;padding:4px 8px;}
+
+  /* Cards de resultado */
+  .mini-grid{grid-template-columns:1fr 1fr;}
+  .sum-val{font-size:20px;}
+
+  /* Bloco body */
+  .block-body{padding:1rem;}
+  .block-header{padding:0.875rem 1rem;}
+
+  /* Precificacao centralizada */
+  #tab-precificacao > div{
+    max-width:100% !important;
+    margin:0 !important;
+  }
+
+  /* Itens de envio/adicionais/extras em coluna */
+  .fg > div[style*="display:flex;gap:8px"]{
+    flex-wrap:wrap;
+  }
+  .fg > div[style*="display:flex;gap:8px"] > .input-wrap{
+    flex:1 1 auto !important;
+    min-width:100px;
+  }
+}
+
+@media (max-width: 480px){
+  /* Header compacto em telas muito pequenas */
+  header{justify-content:space-between;}
+  header > div:nth-child(2){order:3;width:100%;justify-content:center;}
+
+  /* Uma coluna para grids */
+  .g3{grid-template-columns:1fr;}
+
+  /* Resumo Diário em coluna única */
+  .item-row > div[style*="display:flex;align-items:flex-end"] > .fg{
+    flex:1 1 100% !important;
+  }
+
+  /* Mini cards 2x2 mantidos */
+  .mini-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body class="loading">
+
+<!-- ===== TELA DE LOGIN ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect x="4" y="24" width="24" height="4" rx="2" fill="#f97316" opacity="0.35"/>
+        <rect x="4" y="8" width="3" height="17" rx="1.5" fill="#f97316" opacity="0.6"/>
+        <rect x="4" y="8" width="18" height="3" rx="1.5" fill="#f97316"/>
+        <rect x="17" y="8" width="4" height="7" rx="1.5" fill="#f97316"/>
+        <path d="M18.5 15 L19 18 L19.5 15" stroke="#f97316" stroke-width="1.2" fill="#f97316"/>
+        <rect x="8" y="21" width="10" height="3" rx="1" fill="#f97316" opacity="0.5"/>
+        <rect x="9" y="18" width="8" height="3" rx="1" fill="#f97316" opacity="0.4"/>
+        <rect x="10" y="15.5" width="6" height="2.5" rx="1" fill="#f97316" opacity="0.65"/>
+      </svg>
+    </div>
+    <div class="login-title">Calculadora 3D</div>
+    <div class="login-sub">Faça login para acessar</div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="login-error">E-mail ou senha incorretos. Tente novamente.</div>
+    <div class="login-loading" id="login-loading">Entrando...</div>
+    <button class="login-btn" id="login-btn" onclick="fazerLogin()">Entrar</button>
+    <button class="login-forgot" onclick="esqueceuSenha()">Esqueci minha senha</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app-screen">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="24" width="24" height="4" rx="2" fill="#f97316" opacity="0.35"/>
+        <rect x="4" y="8" width="3" height="17" rx="1.5" fill="#f97316" opacity="0.6"/>
+        <rect x="4" y="8" width="18" height="3" rx="1.5" fill="#f97316"/>
+        <rect x="17" y="8" width="4" height="7" rx="1.5" fill="#f97316"/>
+        <path d="M18.5 15 L19 18 L19.5 15" stroke="#f97316" stroke-width="1.2" fill="#f97316"/>
+        <rect x="8" y="21" width="10" height="3" rx="1" fill="#f97316" opacity="0.5"/>
+        <rect x="9" y="18" width="8" height="3" rx="1" fill="#f97316" opacity="0.4"/>
+        <rect x="10" y="15.5" width="6" height="2.5" rx="1" fill="#f97316" opacity="0.65"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Calculadora 3D</div>
+      <div class="logo-sub">precificacao inteligente</div>
+    </div>
+  </div>
+  <!-- ABAS NO CENTRO DO HEADER -->
+  <div style="display:flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;">
+    <button id="tab-btn-custos" onclick="switchTab('custos')" class="hdr-tab hdr-tab-active">&#128176; Custos</button>
+    <button id="tab-btn-precificacao" onclick="switchTab('precificacao')" class="hdr-tab">&#128202; Precifica&#231;&#227;o</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:40px;">
+    <button onclick="resetValores()" class="reset-btn">↺ Reset</button>
+    <div class="currency-sel">
+      <button class="active" onclick="setCurrency('BRL',this)">R$ BRL</button>
+      <button onclick="setCurrency('USD',this)">$ USD</button>
+    </div>
+  </div>
+</header>
+
+
+<div class="main-wrap">
+
+<!-- ========== ABA CUSTOS ========== -->
+<div id="tab-custos" class="tab-content active">
+<div class="two-col">
+
+<!-- COLUNA ESQUERDA -->
+<div>
+
+<!-- BLOCO ENERGIA -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-orange">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M13 2L4.09 12.96A1 1 0 005 14.5h6.5L10 22l9.91-10.96A1 1 0 0019 9.5h-6.5L13 2z" stroke="#f97316" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div><div class="block-title">Energia El&#233;trica</div><div class="block-sub">Tarifa kWh e tempo de impressao</div></div>
+  </div>
+  <div class="block-body">
+    <div class="fg">
+      <label>Tarifa de energia (<span class="cs">R$</span>/kWh)</label>
+      <div class="input-wrap">
+        <input type="number" id="tarifa_kwh" placeholder="0,00" step="0.01" oninput="calcAll()">
+        <span class="input-px"><span class="cs">R$</span>/kWh</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-hint);margin-top:4px;" id="tarifa_hint">Media Brasil ~R$ 0,90/kWh</div>
+    </div>
+    <div class="fg">
+      <label>Tempo de impressao</label>
+      <div class="g2">
+        <div class="input-wrap">
+          <input type="number" id="imp_horas" placeholder="0" min="0" step="1" oninput="calcAll()">
+          <span class="input-px">horas</span>
+        </div>
+        <div class="input-wrap">
+          <input type="number" id="imp_min" placeholder="0" min="0" max="59" step="1" oninput="calcAll()">
+          <span class="input-px">min</span>
+        </div>
+      </div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-title">Custo total de energia / dia</div>
+      <div class="sum-val rv-orange" id="energia_dia">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO CUSTOS ADICIONAIS -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-purple">&#128230;</div>
+    <div><div class="block-title">Custos Operacionais</div><div class="block-sub">Gastos fixos mensais</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-adicionais"></div>
+    <button class="add-btn" onclick="addAdicional()">+ Adicionar item</button>
+    <div class="sum-card">
+      <div class="sum-title">Total custos operacionais</div>
+      <div class="sum-val rv-purple" id="adicionais_total">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO CUSTOS EXTRAS -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-yellow">&#128296;</div>
+    <div><div class="block-title">Custos Extras</div><div class="block-sub">Despesas vari&#225;veis</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-extras"></div>
+    <button class="add-btn" onclick="addExtra()">+ Adicionar item</button>
+    <div class="sum-card">
+      <div class="sum-title">Total custos extras</div>
+      <div class="sum-val rv-yellow" id="extras_total">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /col esquerda -->
+
+<!-- COLUNA DIREITA -->
+<div>
+
+<!-- BLOCO FILAMENTO -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-blue">&#129523;</div>
+    <div><div class="block-title">Filamento</div><div class="block-sub">Material por trabalho</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-filamentos"></div>
+    <button class="add-btn" onclick="addFilamento()">+ Adicionar filamento</button>
+    <div class="sum-card">
+      <div class="sum-title">Total de material</div>
+      <div class="sum-val rv-blue" id="fil_total">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO TAXAS DE ENVIO -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-orange">&#128666;</div>
+    <div><div class="block-title">Taxas de Envio</div><div class="block-sub">Custo por transportadora</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-envios"></div>
+    <button class="add-btn" onclick="addEnvio()">+ Adicionar transportadora</button>
+    <div class="sum-card">
+      <div class="sum-title">Total de envios</div>
+      <div class="sum-val rv-orange" id="envios_total">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO TAXAS DE MARKETPLACE -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-purple">&#127978;</div>
+    <div><div class="block-title">Taxas de Marketplace</div><div class="block-sub">Taxa cobrada por plataforma de venda</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-mp"></div>
+    <button class="add-btn" onclick="addMp()">+ Adicionar marketplace</button>
+    <div class="sum-card">
+      <div class="sum-title">Taxa m&#233;dia aplicada</div>
+      <div class="sum-val" style="color:var(--purple);" id="mp_total">0,00%</div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO REGISTRO DE PRODUCAO -->
+<div class="block">
+  <div class="block-header">
+    <div class="block-icon bi-blue">&#128198;</div>
+    <div><div class="block-title">Registro de Produ&#231;&#227;o</div><div class="block-sub">Vendas e produ&#231;&#227;o do dia</div></div>
+  </div>
+  <div class="block-body">
+    <div id="list-prod-dia"></div>
+    <button class="add-btn" onclick="addProduto('dia')">+ Adicionar produto</button>
+    <div class="mini-grid">
+      <div class="mini-card"><div class="mini-label">Faturamento bruto</div><div class="mini-val rv-green" id="dia_fat">R$ 0</div></div>
+      <div class="mini-card"><div class="mini-label">Custos totais</div><div class="mini-val rv-orange" id="dia_custos">R$ 0</div></div>
+      <div class="mini-card"><div class="mini-label">Lucro liquido</div><div class="mini-val rv-green" id="dia_lucro">R$ 0</div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /col direita -->
+</div><!-- /two-col -->
+</div><!-- /tab-custos -->
+
+<!-- ========== ABA PRECIFICACAO ========== -->
+<div id="tab-precificacao" class="tab-content">
+<div style="max-width:620px;margin:0 auto;">
+  <!-- Detalhamento automatico — centralizado -->
+  <div class="block">
+    <div class="block-header">
+      <div class="block-icon bi-blue">&#128269;</div>
+      <div><div class="block-title">Detalhamento</div><div class="block-sub">Calculo completo baseado nos seus custos e vendas</div></div>
+    </div>
+    <div class="block-body">
+      <div id="prec-det-rows"><div class="placeholder">Adicione produtos e pre&#231;os no Registro de Produ&#231;&#227;o para ver o detalhamento.</div></div>
+    </div>
+  </div>
+</div>
+</div><!-- /tab-precificacao -->
+
+</div><!-- /main-wrap -->
+
+<script>
+// ===== ESTADO =====
+let currency = 'BRL';
+
+let filamentos = [];
+let filId = 0;
+
+let adicionais = [];
+
+let envios = [];
+let marketplaces = [];
+
+let extras = [];
+
+let produtosDia = [];
+let prodId = 100;
+
+// ===== UTIL =====
+function gv(id){ return parseFloat(document.getElementById(id)?.value)||0; }
+function sym(){ return currency==='BRL'?'R$':'$'; }
+function fmt(v){
+  if(currency==='BRL') return 'R$ '+v.toFixed(2).replace('.',',');
+  return '$ '+v.toFixed(2);
+}
+function fmtI(v){
+  if(currency==='BRL') return 'R$ '+Math.round(v).toLocaleString('pt-BR');
+  return '$ '+Math.round(v).toLocaleString('en-US');
+}
+
+// ===== RESET VALORES =====
+function resetValores(){
+  // Zera campos de energia
+  document.getElementById('tarifa_kwh').value='';
+  document.getElementById('imp_horas').value='';
+  document.getElementById('imp_min').value='';
+  // Zera filamentos
+  filamentos.forEach(f=>{f.preco_kg=0;f.gramas=0;});
+  // Zera adicionais
+  adicionais.forEach(c=>{c.qtd=0;c.preco=0;});
+  // Zera envios
+  envios.forEach(e=>{e.qtd=0;e.preco=0;});
+  // Zera extras
+  extras.forEach(c=>{c.qtd=0;c.preco=0;});
+  // Zera produtos dia
+  produtosDia.forEach(p=>{p.qtd=0;p.preco=0;});
+  // Zera marketplaces
+  marketplaces.forEach(m=>m.taxa=0);
+  // Re-renderiza tudo
+  renderFilamentos();renderAdicionais();renderMp();renderEnvios();renderExtras();renderProdutos('dia');
+  calcAll();
+}
+
+// ===== MOEDA =====
+function setCurrency(c,btn){
+  currency=c;
+  document.querySelectorAll('.currency-sel button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.cs').forEach(el=>el.textContent=sym());
+  const hint=document.getElementById('tarifa_hint');
+  if(c==='BRL') hint.textContent='Media Brasil ~R$ 0,90/kWh';
+  else hint.textContent='Average USA ~$0.13/kWh';
+  renderFilamentos();
+  renderAdicionais();
+  renderMp();
+  renderEnvios();
+  renderExtras();
+  renderProdutos('dia');
+  calcAll();
+}
+
+// ===== ABAS =====
+function switchTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.getElementById('tab-btn-custos').classList.remove('hdr-tab-active');
+  document.getElementById('tab-btn-precificacao').classList.remove('hdr-tab-active');
+  document.getElementById('tab-btn-'+id).classList.add('hdr-tab-active');
+  calcAll();
+}
+
+// ===== FILAMENTOS =====
+function addFilamento(){
+  filId++;
+  filamentos.push({id:filId,marca:'',preco_kg:0,gramas:0});
+  renderFilamentos();
+}
+function renderFilamentos(){
+  const list=document.getElementById('list-filamentos');
+  list.innerHTML='';
+  filamentos.forEach((f,i)=>{
+    const custo=(f.preco_kg/1000)*f.gramas;
+    const d=document.createElement('div');
+    d.className='item-row';
+    d.innerHTML=`
+      <div class="item-row-head">
+        <span class="item-label">Filamento ${i+1}</span>
+        <button class="rm-btn" data-rm="${f.id}" data-type="fil">x</button>
+      </div>
+      <div class="fg">
+        <label>Marca + Tipo de material</label>
+        <div class="input-wrap"><input type="text" value="${f.marca}" placeholder="Ex: Polymaker PLA+" data-fil="${i}" data-field="marca"></div>
+      </div>
+      <div class="g3">
+        <div class="fg" style="margin-bottom:0">
+          <label>Pre&ccedil;o/kg (${sym()})</label>
+          <div class="input-wrap">
+            <span class="input-px px-left">${sym()}</span>
+            <input type="number" value="${f.preco_kg||''}" step="0.5" placeholder="0" data-fil="${i}" data-field="preco_kg">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Gramas usadas</label>
+          <div class="input-wrap">
+            <input type="number" value="${f.gramas||''}" step="1" placeholder="0" data-fil="${i}" data-field="gramas">
+            <span class="input-px">g</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Custo total</label>
+          <div class="input-wrap" style="background:var(--surface3)">
+            <input type="text" readonly value="${fmt(custo)}" style="color:var(--blue);font-weight:600;" data-fil-custo="${i}">
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-fil]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const i=parseInt(this.dataset.fil),field=this.dataset.field;
+      if(field==='marca') filamentos[i].marca=this.value;
+      else filamentos[i][field]=parseFloat(this.value)||0;
+      const c=(filamentos[i].preco_kg/1000)*filamentos[i].gramas;
+      const el=list.querySelector(`[data-fil-custo="${i}"]`);
+      if(el) el.value=fmt(c);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-rm]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      filamentos=filamentos.filter(f=>f.id!==parseInt(this.dataset.rm));
+      renderFilamentos();
+    });
+  });
+  calcAll();
+}
+
+// ===== ADICIONAIS =====
+function addAdicional(){adicionais.push({nome:'',qtd:0,preco:0});renderAdicionais();}
+function renderAdicionais(){
+  const list=document.getElementById('list-adicionais');
+  list.innerHTML='';
+  adicionais.forEach((c,i)=>{
+    const total=(c.qtd||0)*(c.preco||0);
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div class="fg" style="margin-bottom:0;flex:2;min-width:120px;">
+          <label>Item</label>
+          <div class="input-wrap">
+            <input type="text" value="${c.nome}" placeholder="Ex: Embalagens" data-ad-nome="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:70px;">
+          <label>Qtd</label>
+          <div class="input-wrap">
+            <input type="number" value="${c.qtd||''}" min="0" step="1" placeholder="0" data-ad-qtd="${i}">
+            <span class="input-px">un</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Pre&ccedil;o unit. (${sym()})</label>
+          <div class="input-wrap">
+            <span class="input-px px-left">${sym()}</span>
+            <input type="number" value="${c.preco||''}" step="0.01" placeholder="0,00" data-ad-preco="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Total</label>
+          <div class="input-wrap" style="background:var(--surface3)">
+            <input type="text" readonly value="${fmt(total)}" style="color:var(--purple);font-weight:600;" data-ad-tot="${i}">
+          </div>
+        </div>
+        <button class="rm-btn" data-rm-ad="${i}" style="margin-bottom:2px;">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-ad-nome]').forEach(inp=>{
+    inp.addEventListener('input',function(){adicionais[parseInt(this.dataset.adNome)].nome=this.value;});
+  });
+  list.querySelectorAll('[data-ad-qtd]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.adQtd);
+      adicionais[idx].qtd=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-ad-tot="${idx}"]`);
+      if(el) el.value=fmt(adicionais[idx].qtd*adicionais[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-ad-preco]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.adPreco);
+      adicionais[idx].preco=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-ad-tot="${idx}"]`);
+      if(el) el.value=fmt(adicionais[idx].qtd*adicionais[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-rm-ad]').forEach(btn=>{
+    btn.addEventListener('click',function(){adicionais.splice(parseInt(this.dataset.rmAd),1);renderAdicionais();calcAll();});
+  });
+}
+
+// ===== MARKETPLACE =====
+function addMp(){marketplaces.push({nome:'',taxa:0});renderMp();}
+function renderMp(){
+  const list=document.getElementById('list-mp');
+  list.innerHTML='';
+  marketplaces.forEach((m,i)=>{
+    const d=document.createElement('div');d.className='item-row';d.style.marginBottom='0.5rem';
+    d.innerHTML=`
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="input-wrap" style="flex:2"><input type="text" value="${m.nome}" placeholder="Nome da plataforma" data-mp-nome="${i}"></div>
+        <div class="input-wrap" style="flex:1">
+          <input type="number" value="${m.taxa||''}" step="0.1" min="0" max="100" placeholder="0.0" data-mp-taxa="${i}">
+          <span class="input-px">%</span>
+        </div>
+        <button class="rm-btn" data-rm-mp="${i}">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-mp-nome]').forEach(inp=>{inp.addEventListener('input',function(){marketplaces[parseInt(this.dataset.mpNome)].nome=this.value;});});
+  list.querySelectorAll('[data-mp-taxa]').forEach(inp=>{inp.addEventListener('input',function(){marketplaces[parseInt(this.dataset.mpTaxa)].taxa=parseFloat(this.value)||0;calcAll();});});
+  list.querySelectorAll('[data-rm-mp]').forEach(btn=>{btn.addEventListener('click',function(){marketplaces.splice(parseInt(this.dataset.rmMp),1);renderMp();calcAll();});});
+}
+
+// ===== MARKETPLACE =====
+function addMp(){marketplaces.push({nome:'',taxa:0});renderMp();}
+function renderMp(){
+  const list=document.getElementById('list-mp');
+  list.innerHTML='';
+  marketplaces.forEach((m,i)=>{
+    const d=document.createElement('div');d.className='fg';
+    d.innerHTML=`
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="input-wrap" style="flex:2"><input type="text" value="${m.nome}" placeholder="Ex: Etsy" data-mp-nome="${i}"></div>
+        <div class="input-wrap" style="flex:1">
+          <input type="number" value="${m.taxa||''}" step="0.1" min="0" max="100" placeholder="0,0" data-mp-taxa="${i}">
+          <span class="input-px">%</span>
+        </div>
+        <button class="rm-btn" data-rm-mp="${i}">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-mp-nome]').forEach(inp=>{inp.addEventListener('input',function(){marketplaces[parseInt(this.dataset.mpNome)].nome=this.value;});});
+  list.querySelectorAll('[data-mp-taxa]').forEach(inp=>{inp.addEventListener('input',function(){marketplaces[parseInt(this.dataset.mpTaxa)].taxa=parseFloat(this.value)||0;calcAll();});});
+  list.querySelectorAll('[data-rm-mp]').forEach(btn=>{btn.addEventListener('click',function(){marketplaces.splice(parseInt(this.dataset.rmMp),1);renderMp();calcAll();});});
+}
+
+// ===== ENVIOS =====
+function addEnvio(){envios.push({nome:'',qtd:0,preco:0});renderEnvios();}
+function renderEnvios(){
+  const list=document.getElementById('list-envios');
+  list.innerHTML='';
+  envios.forEach((e,i)=>{
+    const total=(e.qtd||0)*(e.preco||0);
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div class="fg" style="margin-bottom:0;flex:2;min-width:120px;">
+          <label>Transportadora</label>
+          <div class="input-wrap">
+            <input type="text" value="${e.nome}" placeholder="Ex: FedEx" data-env-nome="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:70px;">
+          <label>Qtd</label>
+          <div class="input-wrap">
+            <input type="number" value="${e.qtd||''}" min="0" step="1" placeholder="0" data-env-qtd="${i}">
+            <span class="input-px">un</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Pre&ccedil;o unit. (${sym()})</label>
+          <div class="input-wrap">
+            <span class="input-px px-left">${sym()}</span>
+            <input type="number" value="${e.preco||''}" step="0.01" placeholder="0,00" data-env-preco="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Total</label>
+          <div class="input-wrap" style="background:var(--surface3)">
+            <input type="text" readonly value="${fmt(total)}" style="color:var(--orange);font-weight:600;" data-env-tot="${i}">
+          </div>
+        </div>
+        <button class="rm-btn" data-rm-env="${i}" style="margin-bottom:2px;">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-env-nome]').forEach(inp=>{
+    inp.addEventListener('input',function(){envios[parseInt(this.dataset.envNome)].nome=this.value;});
+  });
+  list.querySelectorAll('[data-env-qtd]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.envQtd);
+      envios[idx].qtd=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-env-tot="${idx}"]`);
+      if(el) el.value=fmt(envios[idx].qtd*envios[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-env-preco]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.envPreco);
+      envios[idx].preco=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-env-tot="${idx}"]`);
+      if(el) el.value=fmt(envios[idx].qtd*envios[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-rm-env]').forEach(btn=>{
+    btn.addEventListener('click',function(){envios.splice(parseInt(this.dataset.rmEnv),1);renderEnvios();calcAll();});
+  });
+}
+
+// ===== EXTRAS =====
+function addExtra(){extras.push({nome:'',qtd:0,preco:0});renderExtras();}
+function renderExtras(){
+  const list=document.getElementById('list-extras');
+  list.innerHTML='';
+  extras.forEach((c,i)=>{
+    const total=(c.qtd||0)*(c.preco||0);
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div class="fg" style="margin-bottom:0;flex:2;min-width:120px;">
+          <label>Item</label>
+          <div class="input-wrap">
+            <input type="text" value="${c.nome}" placeholder="Ex: Silica Gel" data-ext-nome="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:70px;">
+          <label>Qtd</label>
+          <div class="input-wrap">
+            <input type="number" value="${c.qtd||''}" min="0" step="1" placeholder="0" data-ext-qtd="${i}">
+            <span class="input-px">un</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Pre&ccedil;o unit. (${sym()})</label>
+          <div class="input-wrap">
+            <span class="input-px px-left">${sym()}</span>
+            <input type="number" value="${c.preco||''}" step="0.01" placeholder="0,00" data-ext-preco="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Total</label>
+          <div class="input-wrap" style="background:var(--surface3)">
+            <input type="text" readonly value="${fmt(total)}" style="color:var(--yellow);font-weight:600;" data-ext-tot="${i}">
+          </div>
+        </div>
+        <button class="rm-btn" data-rm-ext="${i}" style="margin-bottom:2px;">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-ext-nome]').forEach(inp=>{
+    inp.addEventListener('input',function(){extras[parseInt(this.dataset.extNome)].nome=this.value;});
+  });
+  list.querySelectorAll('[data-ext-qtd]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.extQtd);
+      extras[idx].qtd=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-ext-tot="${idx}"]`);
+      if(el) el.value=fmt(extras[idx].qtd*extras[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-ext-preco]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.extPreco);
+      extras[idx].preco=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-ext-tot="${idx}"]`);
+      if(el) el.value=fmt(extras[idx].qtd*extras[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-rm-ext]').forEach(btn=>{
+    btn.addEventListener('click',function(){extras.splice(parseInt(this.dataset.rmExt),1);renderExtras();calcAll();});
+  });
+}
+
+// ===== PRODUTOS RESUMO =====
+function addProduto(tipo){
+  prodId++;
+  const p={id:prodId,nome:'',qtd:0,preco:0};
+  produtosDia.push(p);
+  renderProdutos('dia');
+}
+function renderProdutos(tipo){
+  const arr=produtosDia;
+  const list=document.getElementById('list-prod-dia');
+  if(!list) return;
+  list.innerHTML='';
+  arr.forEach((p,i)=>{
+    const total=(p.qtd||0)*(p.preco||0);
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div class="fg" style="margin-bottom:0;flex:2;min-width:120px;">
+          <label>Produto</label>
+          <div class="input-wrap">
+            <input type="text" value="${p.nome}" placeholder="Ex: Chaveiros" data-pn="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:80px;">
+          <label>Pedidos/dia</label>
+          <div class="input-wrap">
+            <input type="number" value="${p.qtd||''}" min="0" step="1" placeholder="0" data-pq="${i}">
+            <span class="input-px">un</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Pre&ccedil;o unit. (${sym()})</label>
+          <div class="input-wrap">
+            <span class="input-px px-left">${sym()}</span>
+            <input type="number" value="${p.preco||''}" step="0.5" placeholder="0,00" data-pp="${i}">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1.2;min-width:90px;">
+          <label>Pre&ccedil;o total</label>
+          <div class="input-wrap" style="background:var(--surface3)">
+            <input type="text" readonly value="${fmt(total)}" style="color:var(--green);font-weight:600;" data-ptot="${i}">
+          </div>
+        </div>
+        <button class="rm-btn" data-rp="${i}" style="margin-bottom:2px;">x</button>
+      </div>`;
+    list.appendChild(d);
+  });
+  list.querySelectorAll('[data-pn]').forEach(inp=>{
+    inp.addEventListener('input',function(){produtosDia[parseInt(this.dataset.pn)].nome=this.value;});
+  });
+  list.querySelectorAll('[data-pq]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.pq);
+      produtosDia[idx].qtd=parseFloat(this.value)||0;
+      if(produtosDia[idx].qtd===0){
+        produtosDia[idx].preco=0;
+        const precoEl=list.querySelector(`[data-pp="${idx}"]`);
+        if(precoEl) precoEl.value='';
+      }
+      const el=list.querySelector(`[data-ptot="${idx}"]`);
+      if(el) el.value=fmt(produtosDia[idx].qtd*produtosDia[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-pp]').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const idx=parseInt(this.dataset.pp);
+      produtosDia[idx].preco=parseFloat(this.value)||0;
+      const el=list.querySelector(`[data-ptot="${idx}"]`);
+      if(el) el.value=fmt(produtosDia[idx].qtd*produtosDia[idx].preco);
+      calcAll();
+    });
+  });
+  list.querySelectorAll('[data-rp]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      produtosDia.splice(parseInt(this.dataset.rp),1);
+      renderProdutos('dia');
+      calcAll();
+    });
+  });
+}
+
+// ===== CALCULAR TUDO =====
+function calcAll(){
+  const DIAS=30;
+  const tarifa=gv('tarifa_kwh');
+  const hTotal=gv('imp_horas')+(gv('imp_min')/60);
+
+  // Energia
+  const enDia=tarifa*hTotal;
+  document.getElementById('energia_dia').textContent=fmt(enDia);
+
+  // Filamento
+  const filTot=filamentos.reduce((a,f)=>a+(f.preco_kg/1000)*f.gramas,0);
+  document.getElementById('fil_total').textContent=fmt(filTot);
+
+  // Adicionais
+  const addTot=adicionais.reduce((a,c)=>a+((c.qtd||0)*(c.preco||0)),0);
+  document.getElementById('adicionais_total').textContent=fmt(addTot);
+
+  // Envios
+  const envTot=envios.reduce((a,e)=>a+((e.qtd||0)*(e.preco||0)),0);
+  document.getElementById('envios_total').textContent=fmt(envTot);
+
+  // Marketplace — taxa média
+  const taxaMed=marketplaces.length>0?marketplaces.reduce((a,m)=>a+m.taxa,0)/marketplaces.length:0;
+  document.getElementById('mp_total').textContent=taxaMed.toFixed(2)+'%';
+
+  // Extras
+  const extTot=extras.reduce((a,c)=>a+((c.qtd||0)*(c.preco||0)),0);
+  document.getElementById('extras_total').textContent=fmt(extTot);
+
+  // Custo total
+  const custoTotal=enDia+filTot+addTot+envTot+extTot;
+
+  // Resumo diario
+  const fatDia=produtosDia.reduce((a,p)=>a+p.qtd*p.preco,0);
+  const taxaMpValor=fatDia*(taxaMed/100);
+  const lucroDia=fatDia-custoTotal-taxaMpValor;
+  document.getElementById('dia_fat').textContent=fmtI(fatDia);
+  document.getElementById('dia_custos').textContent=fmtI(custoTotal);
+  document.getElementById('dia_lucro').textContent=fmtI(lucroDia);
+
+  // Precificacao — detalhamento automatico
+  const detRows=document.getElementById('prec-det-rows');
+
+  if(produtosDia.length===0 || fatDia===0){
+    detRows.innerHTML='<div class="placeholder">Adicione produtos e pre&#231;os no Registro de Produ&#231;&#227;o para ver o detalhamento.</div>';
+    return;
+  }
+
+  // Detalhamento por produto com custo proporcional
+  let prodRows='';
+  produtosDia.forEach(p=>{
+    if(p.preco===0 && p.qtd===0) return;
+    const totalProd=p.qtd*p.preco;
+    const pctFat=fatDia>0?(totalProd/fatDia):0;
+    const custoProp=custoTotal*pctFat;
+    const taxaMpProd=totalProd*(taxaMed/100);
+    const lucroProd=totalProd-custoProp-taxaMpProd;
+    const margemProd=totalProd>0?(lucroProd/totalProd*100):0;
+    prodRows+=`
+      <div style="background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:13px;">${p.nome}</span>
+          <span style="font-size:11px;color:var(--text-hint);font-family:var(--mono)">${p.qtd} un x ${fmt(p.preco)}</span>
+        </div>
+        <div class="result-row"><span class="rl">Faturamento</span><span class="rv rv-green">${fmt(totalProd)}</span></div>
+        <div class="result-row"><span class="rl">Custo proporcional</span><span class="rv rv-orange">- ${fmt(custoProp)}</span></div>
+        ${taxaMed>0?`<div class="result-row"><span class="rl">Taxa marketplace (${taxaMed.toFixed(1)}%)</span><span class="rv rv-red">- ${fmt(taxaMpProd)}</span></div>`:''}
+        <div class="result-row"><span class="rl">Lucro l&iacute;quido</span><span class="rv ${lucroProd>=0?'rv-green':'rv-red'}">${fmt(lucroProd)}</span></div>
+        <div class="result-row"><span class="rl">Margem</span><span class="rv rv-orange">${margemProd.toFixed(1)}%</span></div>
+      </div>`;
+  });
+
+  // Detalhamento por marketplace
+  let mpRows='';
+  if(marketplaces.length>0){
+    mpRows+=`<hr class="divider"><div style="font-size:10px;font-family:var(--mono);color:var(--text-hint);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Taxas de Marketplace</div>`;
+    marketplaces.forEach(m=>{
+      if(!m.nome) return;
+      const taxaValMp=fatDia*(m.taxa/100);
+      mpRows+=`<div class="result-row"><span class="rl">${m.nome} (${m.taxa}%)</span><span class="rv rv-red">- ${fmt(taxaValMp)}</span></div>`;
+    });
+  }
+
+  const margemGeral=fatDia>0?(lucroDia/fatDia*100):0;
+
+  detRows.innerHTML=`
+    ${prodRows}
+    <hr class="divider">
+    <div style="font-size:10px;font-family:var(--mono);color:var(--text-hint);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Composi&ccedil;&atilde;o dos custos</div>
+    <div class="result-row"><span class="rl">Energia El&eacute;trica</span><span class="rv rv-orange">${fmt(enDia)}</span></div>
+    <div class="result-row"><span class="rl">Custos Operacionais</span><span class="rv rv-purple">${fmt(addTot)}</span></div>
+    <div class="result-row"><span class="rl">Custos Extras</span><span class="rv rv-yellow">${fmt(extTot)}</span></div>
+    <div class="result-row"><span class="rl">Filamento (material)</span><span class="rv rv-blue">${fmt(filTot)}</span></div>
+    <div class="result-row"><span class="rl">Taxas de Envio</span><span class="rv rv-orange">${fmt(envTot)}</span></div>
+    ${taxaMed>0?`<div class="result-row"><span class="rl">Taxas de Marketplace (${taxaMed.toFixed(1)}%)</span><span class="rv rv-red">- ${fmt(taxaMpValor)}</span></div>`:''}
+    <hr class="divider">
+    <div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Custo total de produ&ccedil;&atilde;o</span><span class="rv">${fmt(custoTotal)}</span></div>
+    <div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Faturamento total (dia)</span><span class="rv rv-green">${fmt(fatDia)}</span></div>
+    ${taxaMed>0?`<div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Total taxas marketplace</span><span class="rv rv-red">- ${fmt(taxaMpValor)}</span></div>`:''}
+    <div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Lucro l&iacute;quido (dia)</span><span class="rv ${lucroDia>=0?'rv-green':'rv-red'}">${fmt(lucroDia)}</span></div>
+    <div class="result-row"><span class="rl" style="font-weight:600;color:var(--text)">Margem geral</span><span class="rv rv-orange">${margemGeral.toFixed(1)}%</span></div>`;
+}
+
+// ===== INIT =====
+renderAdicionais();
+renderMp();
+renderEnvios();
+renderExtras();
+renderFilamentos();
+renderProdutos('dia');
+calcAll();
+</script>
+
+</div><!-- /app-screen -->
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB_TmUQN_JQwYh-QQzdmehMhqe1Apnqwv8",
+    authDomain: "calculadora3d-5d2db.firebaseapp.com",
+    projectId: "calculadora3d-5d2db",
+    storageBucket: "calculadora3d-5d2db.firebasestorage.app",
+    messagingSenderId: "40753148792",
+    appId: "1:40753148792:web:3093b0d1ed1dc9a4ea8e8d"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Garante que login está visível e app oculto enquanto verifica
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+    document.body.classList.remove('loading');
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        const headerRight = document.querySelector('header > div:last-child');
+        if(headerRight && !document.getElementById('logout-btn')){
+          const logoutBtn = document.createElement('button');
+          logoutBtn.id = 'logout-btn';
+          logoutBtn.textContent = 'Sair';
+          logoutBtn.style.cssText = 'padding:6px 14px;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-right:8px;';
+          logoutBtn.onclick = () => signOut(auth);
+          headerRight.insertBefore(logoutBtn, headerRight.firstChild);
+        }
+      } else {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app-screen').style.display = 'none';
+      }
+    });
+
+    window.fazerLogin = async function() {
+      const email = document.getElementById('login-email').value.trim();
+      const senha = document.getElementById('login-senha').value;
+      const btn = document.getElementById('login-btn');
+      const erro = document.getElementById('login-error');
+      const loading = document.getElementById('login-loading');
+      if(!email || !senha){
+        erro.textContent = 'Preencha e-mail e senha.';
+        erro.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      erro.style.display = 'none';
+      loading.style.display = 'block';
+      try {
+        await signInWithEmailAndPassword(auth, email, senha);
+      } catch(e) {
+        erro.textContent = 'E-mail ou senha incorretos. Tente novamente.';
+        erro.style.display = 'block';
+        loading.style.display = 'none';
+        btn.disabled = false;
+      }
+    };
+
+    document.getElementById('login-senha').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') window.fazerLogin();
+    });
+    document.getElementById('login-email').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') document.getElementById('login-senha').focus();
+    });
+
+    window.esqueceuSenha = async function() {
+      const email = document.getElementById('login-email').value.trim();
+      const erro = document.getElementById('login-error');
+      if(!email){
+        erro.textContent = 'Digite seu e-mail acima para redefinir a senha.';
+        erro.style.display = 'block';
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        erro.style.cssText = 'display:block;background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#22c55e;';
+        erro.textContent = 'E-mail de redefinição enviado! Verifique sua caixa de entrada.';
+      } catch(e) {
+        erro.style.display = 'block';
+        erro.textContent = 'Não foi possível enviar o e-mail. Verifique o endereço digitado.';
+      }
+    };
+
+  } catch(err) {
+    // Se Firebase falhar, mostra erro na tela de login
+    document.body.classList.remove('loading');
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-error').textContent = 'Erro ao conectar. Verifique sua internet.';
+    document.getElementById('login-error').style.display = 'block';
+  }
+</script>
+</body>
+</html>
