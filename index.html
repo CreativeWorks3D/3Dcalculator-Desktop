@@ -244,10 +244,38 @@ body{
     return true;
   }
 
+  async function registrarLoginAdmin(email) {
+    try {
+      const deviceInfo = getDeviceInfo();
+      const docId = email.replace(/@/g, '_at_').replace(/\./g, '_dot_');
+      const clienteRef = doc(db, 'clientes', docId);
+      const clienteSnap = await getDoc(clienteRef);
+      if (clienteSnap.exists()) {
+        await updateDoc(clienteRef, {
+          ultimoLogin: new Date().toISOString(),
+          totalLogins: (clienteSnap.data().totalLogins || 0) + 1
+        });
+      } else {
+        await setDoc(clienteRef, {
+          nome: email.split('@')[0],
+          email: email,
+          dataCompra: '',
+          tipoAcesso: 'desconhecido',
+          transacaoId: '',
+          status: 'ativo',
+          ultimoLogin: new Date().toISOString(),
+          totalLogins: 1,
+          dispositivos: []
+        });
+      }
+    } catch (e) { console.log('Erro ao registrar login:', e); }
+  }
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       const permitido = await verificarDispositivo(user.uid);
       if (permitido) {
+        await registrarLoginAdmin(user.email);
         window.location.href = "calculadora.html";
       } else {
         await auth.signOut();
@@ -298,21 +326,6 @@ body{
       }
       sucesso.textContent = "Login realizado! Redirecionando...";
       sucesso.style.display = "block";
-
-      // Registra login no painel admin
-      try {
-        const deviceInfo = getDeviceInfo();
-        const docId = email.replace(/@/g, '_at_').replace(/\./g, '_dot_');
-        const clienteRef = doc(db, 'clientes', docId);
-        const clienteSnap = await getDoc(clienteRef);
-        if (clienteSnap.exists()) {
-          await updateDoc(clienteRef, {
-            ultimoLogin: new Date().toISOString(),
-            totalLogins: (clienteSnap.data().totalLogins || 0) + 1
-          });
-        }
-      } catch (e) { console.log('Erro ao registrar login:', e); }
-
       setTimeout(() => { window.location.href = "calculadora.html"; }, 800);
     } catch(e) {
       erro.textContent = "E-mail ou senha incorretos. Tente novamente.";
