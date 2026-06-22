@@ -180,6 +180,9 @@ body{
   const db = getFirestore(app);
   const MAX_DISPOSITIVOS = 2;
 
+  // FLAG: impede onAuthStateChanged de redirecionar durante login manual
+  let loginEmAndamento = false;
+
   function getDeviceInfo() {
     const ua = navigator.userAgent;
     let dispositivo = "Desconhecido";
@@ -244,8 +247,9 @@ body{
     return true;
   }
 
-  // Auto-login: se ja esta logado, redireciona direto (sem tracking)
+  // Auto-login: so redireciona se NAO for login manual
   onAuthStateChanged(auth, async (user) => {
+    if (loginEmAndamento) return;
     if (user) {
       const permitido = await verificarDispositivo(user.uid);
       if (permitido) {
@@ -285,11 +289,15 @@ body{
     btn.style.display = "none";
     loading.style.display = "flex";
 
+    // Ativa flag para impedir onAuthStateChanged de redirecionar
+    loginEmAndamento = true;
+
     try {
       const cred = await signInWithEmailAndPassword(auth, email, senha);
       const permitido = await verificarDispositivo(cred.user.uid);
       if (!permitido) {
         await auth.signOut();
+        loginEmAndamento = false;
         erro.textContent = "Limite de 2 dispositivos atingido. Entre em contato com o suporte para trocar de dispositivo.";
         erro.style.display = "block";
         loading.style.display = "none";
@@ -298,7 +306,7 @@ body{
         return;
       }
 
-      // Registra login no painel admin ANTES de redirecionar
+      // Registra login no painel admin
       try {
         const deviceInfo = getDeviceInfo();
         const docId = email.replace(/@/g, '_at_').replace(/\./g, '_dot_');
@@ -322,12 +330,16 @@ body{
             dispositivos: []
           });
         }
-      } catch (trackErr) { console.log('Erro ao registrar login:', trackErr); }
+      } catch (trackErr) {
+        console.log('Erro ao registrar login:', trackErr);
+      }
 
       sucesso.textContent = "Login realizado! Redirecionando...";
       sucesso.style.display = "block";
+      loginEmAndamento = false;
       window.location.href = "calculadora.html";
     } catch(e) {
+      loginEmAndamento = false;
       erro.textContent = "E-mail ou senha incorretos. Tente novamente.";
       erro.style.display = "block";
       loading.style.display = "none";
