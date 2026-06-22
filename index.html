@@ -105,7 +105,6 @@ body{
   border-radius:50%;
   animation:spin 0.7s linear infinite;
 }
-@keyframes spin{to{transform:rotate(360deg);}}
 .login-forgot{
   font-size:12px;color:#8888a0;
   background:none;border:none;cursor:pointer;
@@ -173,7 +172,7 @@ body{
     projectId: "calculadora3d-5d2db",
     storageBucket: "calculadora3d-5d2db.firebasestorage.app",
     messagingSenderId: "40753148792",
-    appId: "1:40753148792:web:3093b0d1ed1dc9a4ea8e8d"
+    appId: "1:40753148792:web:8b900e70fbdbcb3eea8e8d"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -181,13 +180,11 @@ body{
   const db = getFirestore(app);
   const MAX_DISPOSITIVOS = 2;
 
-  // Detecta informacoes do dispositivo
   function getDeviceInfo() {
     const ua = navigator.userAgent;
     let dispositivo = "Desconhecido";
     let navegador = "Desconhecido";
 
-    // Detecta dispositivo
     if (/iPhone/.test(ua)) dispositivo = "iPhone";
     else if (/iPad/.test(ua)) dispositivo = "iPad";
     else if (/Android/.test(ua) && /Mobile/.test(ua)) dispositivo = "Android";
@@ -196,7 +193,6 @@ body{
     else if (/Windows/.test(ua)) dispositivo = "Windows";
     else if (/Linux/.test(ua)) dispositivo = "Linux";
 
-    // Detecta navegador
     if (/CriOS/.test(ua)) navegador = "Chrome (iOS)";
     else if (/FxiOS/.test(ua)) navegador = "Firefox (iOS)";
     else if (/EdgA/.test(ua)) navegador = "Edge";
@@ -206,7 +202,6 @@ body{
     else if (/Firefox/.test(ua)) navegador = "Firefox";
     else if (/Edg/.test(ua)) navegador = "Edge";
 
-    // Data formatada
     const agora = new Date();
     const data = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
 
@@ -303,19 +298,21 @@ body{
       }
       sucesso.textContent = "Login realizado! Redirecionando...";
       sucesso.style.display = "block";
+
       // Registra login no painel admin
-              try {
-                const deviceInfo = getDeviceInfo();
-                const docId = email.replace(/@/g, '_at_').replace(/\./g, '_dot_');
-                const clienteRef = doc(db, 'clientes', docId);
-                const clienteSnap = await getDoc(clienteRef);
-                if (clienteSnap.exists()) {
-                  await updateDoc(clienteRef, {
-                    ultimoLogin: new Date().toISOString(),
-                    totalLogins: (clienteSnap.data().totalLogins || 0) + 1
-                  });
-                }
-              } catch (e) { console.log('Erro ao registrar login:', e); }
+      try {
+        const deviceInfo = getDeviceInfo();
+        const docId = email.replace(/@/g, '_at_').replace(/\./g, '_dot_');
+        const clienteRef = doc(db, 'clientes', docId);
+        const clienteSnap = await getDoc(clienteRef);
+        if (clienteSnap.exists()) {
+          await updateDoc(clienteRef, {
+            ultimoLogin: new Date().toISOString(),
+            totalLogins: (clienteSnap.data().totalLogins || 0) + 1
+          });
+        }
+      } catch (e) { console.log('Erro ao registrar login:', e); }
+
       setTimeout(() => { window.location.href = "calculadora.html"; }, 800);
     } catch(e) {
       erro.textContent = "E-mail ou senha incorretos. Tente novamente.";
